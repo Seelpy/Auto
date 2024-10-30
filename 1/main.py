@@ -108,8 +108,7 @@ def readMooreFromCsv(fileName, delimiter=';'):
         return mooreStateOutputs, inputValueToTransitions
 
 
-def mealyToMoore(inputFileName, outputFileName):
-    mealyStates, mealyStateOutputs, inputValueToTransitions = readMealyFromCsv(inputFileName)
+def mealyToMoore(mealyStates, mealyStateOutputs, inputValueToTransitions):
     mealyToMooreStates = {}
 
     mealyStateOutputs = dict(
@@ -154,13 +153,10 @@ def mealyToMoore(inputFileName, outputFileName):
     for transitionRow in transitionsRows:
         data.append(transitionRow)
 
-    printFormattedDict(data)
-    writeToCsv(outputFileName, data)
+    return data
 
 
-def mooreToMealy(inputFileName, outputFileName):
-    mooreStateOutputs, inputValueToTransitions = readMooreFromCsv(inputFileName)
-
+def mooreToMealy(mooreStateOutputs, inputValueToTransitions):
     statesRow = ['']
     for mooreState in mooreStateOutputs.keys():
         statesRow.append(mooreState)
@@ -179,8 +175,7 @@ def mooreToMealy(inputFileName, outputFileName):
     for transitionRow in transitionsRows:
         data.append(transitionRow)
 
-    printFormattedDict(data)
-    writeToCsv(outputFileName, data)
+    return data
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some CSV files.')
@@ -191,8 +186,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.conertType == CONVERT_TYPE_MEALY_TO_MOORE:
-        mealyToMoore(args.inputFileName, args.outputFileName)
+        writeToCsv(args.outputFileName, mealyToMoore(*readMealyFromCsv(args.inputFileName)))
     elif args.conertType == CONVERT_TYPE_MOORE_TO_MEALY:
-        mooreToMealy(args.inputFileName, args.outputFileName)
+        writeToCsv(args.outputFileName, mooreToMealy(*readMooreFromCsv(args.inputFileName)))
     else:
         print('Not found')
