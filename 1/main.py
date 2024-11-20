@@ -76,13 +76,16 @@ def readMooreFromCsv(fileName):
     outputs = data[0][1:]
     states = data[1][1:]
 
+    mooreStates = []
+    mooreStateOutputs = {}
+
     for output, state in zip(outputs, states):
-        states.append(state.strip())
-        outputs[state.strip()] = output.strip()
+        mooreStates.append(state.strip())
+        mooreStateOutputs[state.strip()] = output.strip()
 
-    inputToTransitions = createMooreInputToTransitions(data[2:], states, outputs)
+    inputToTransitions = createMooreInputToTransitions(data[2:], mooreStates, mooreStateOutputs)
 
-    return states, inputToTransitions
+    return mooreStates, inputToTransitions
 
 def splitStatesInGroup(states, inputValueToTransitions, prevStateToGroup=None):
     groups = {}
@@ -160,7 +163,7 @@ def generateTransitionsRows(inputValueToTransitions, groups, groupOutputs = None
         for group in groups:
             groupStates = group.split(' ')[1:]
             state = DEFAULT_MIN_STATE_NAME + str(groupStates[i])
-            if groupStates != None:
+            if groupOutputs != None:
                 output = groupOutputs[group][i]
                 transition = state + STATE_INPUT_SEPARATOR + output
             else:
@@ -168,6 +171,7 @@ def generateTransitionsRows(inputValueToTransitions, groups, groupOutputs = None
             row.append(transition)
 
         transitionsRows.append(row)
+    return transitionsRows
 
 
 def minimizeMealy(inputFileName, outputFileName):
