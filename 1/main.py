@@ -106,7 +106,7 @@ def ReadGramma(data: str) -> Gramma:
 
     p = re.compile(pattern, re.MULTILINE)
 
-    gr = Gramma(False, [])
+    gr = Gramma(isLeft, [])
     for transit in p.findall(data):
         x1 = transit[0]
         for t in str.split(transit[1], '|'):
