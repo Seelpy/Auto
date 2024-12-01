@@ -37,6 +37,8 @@ class StateAlias:
         self.alias: dict = {}
         self.index = 0
     def add(self, state: str, isEnd: bool = False, isStart: bool = False) -> str:
+        if state in self.alias:
+            return self.alias[state].state
         s = 'q' + str(self.index)
         self.alias[state] = State(s, isEnd, isStart)
         self.index += 1
