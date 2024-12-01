@@ -21,9 +21,10 @@ class Gramma:
         return list(a)
 
 class State:
-    def __init__(self, state: str, isEnd: bool):
+    def __init__(self, state: str, isEnd: bool, isStart: bool):
         self.state = state
         self.isEnd = isEnd
+        self.isStart = isStart
 
 class MooreMachine:
     def __init__(self, states: list[State], inputs: list[str], transitions: dict):
@@ -35,15 +36,15 @@ class StateAlias:
     def __init__(self):
         self.alias: dict = {}
         self.index = 0
-    def add(self, state: str, isEnd: bool = False) -> str:
+    def add(self, state: str, isEnd: bool = False, isStart: bool = False) -> str:
         if state == 'F':
             state = 'x1'
-        self.alias[state] = State(state, isEnd)
-        return self.alias[state].state
         if state in self.alias:
             return self.alias[state]
+        self.alias[state] = State(state, isEnd, isStart)
+        return self.alias[state].state
         s = 'q' + str(self.index)
-        self.alias[state] = State(s, isEnd)
+        self.alias[state] = State(s, isEnd, isStart)
         self.index += 1
         return s
     def get(self, state: str):
@@ -62,10 +63,11 @@ def ConvertGrammarToMoore(gramma: Gramma) -> MooreMachine:
     aliases = StateAlias()
 
     if gramma.isLeft:
-        aliases.add('H', False)
+        aliases.add('H', False, True)
         aliases.add(gramma.transitions[0].x1, True)
     else:
         aliases.add('F', True)
+        aliases.add(gramma.transitions[0].x1, False, True)
 
     # Создаем состояния для каждого нетерминала
     for transition in gramma.transitions:
@@ -135,6 +137,8 @@ def ReadGramma(data: str) -> Gramma:
 def SaveMooreMachineToCsv(moore_machine: MooreMachine, filename: str):
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file, delimiter=';')
+
+        moore_machine.states = sorted(moore_machine.states, key=lambda state: not state.isStart)
 
         writer.writerow([''] + ['F' if s.isEnd else '' for s in moore_machine.states])
         writer.writerow([''] + [s.state for s in moore_machine.states])
