@@ -128,24 +128,24 @@ def ReadGramma(data: str) -> Gramma:
             gr.transitions.append(trans)
     return gr
 
-def SaveMooreMachineToCsv(moore_machine: MooreMachine, filename: str):
+def SaveMooreMachineToCsv(moore: MooreMachine, filename: str):
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file, delimiter=';')
 
-        moore_machine.states = sorted(moore_machine.states, key=lambda state: not state.isStart)
+        moore.states = sorted(moore.states, key=lambda state: not state.isStart)
 
-        writer.writerow([''] + ['F' if s.isEnd else '' for s in moore_machine.states])
-        writer.writerow([''] + [s.state for s in moore_machine.states])
+        writer.writerow([''] + ['F' if s.isEnd else '' for s in moore.states])
+        writer.writerow([''] + [s.state for s in moore.states])
 
-        transition_data = {input_symbol: [] for input_symbol in moore_machine.inputs}
+        transition_data = {input_symbol: [] for input_symbol in moore.inputs}
 
-        for input_symbol in moore_machine.inputs:
-            for state in moore_machine.states:
-                next_state = moore_machine.transitions.get((state.state, input_symbol), '')
-                transition_data[input_symbol].append(f"{','.join(next_state)}")
+        for input in moore.inputs:
+            for state in moore.states:
+                next_state = moore.transitions.get((state.state, input), '')
+                transition_data[input].append(f"{','.join(next_state)}")
 
-        for input_symbol in moore_machine.inputs:
-            row = [input_symbol] + transition_data[input_symbol]
+        for input in moore.inputs:
+            row = [input] + transition_data[input]
             writer.writerow(row)
 
 def ReadContent(path: str) -> str:
