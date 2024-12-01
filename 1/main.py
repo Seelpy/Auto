@@ -37,19 +37,11 @@ class StateAlias:
         self.alias: dict = {}
         self.index = 0
     def add(self, state: str, isEnd: bool = False, isStart: bool = False) -> str:
-        if state == 'F':
-            state = 'x1'
-        if state in self.alias:
-            return self.alias[state]
-        self.alias[state] = State(state, isEnd, isStart)
-        return self.alias[state].state
         s = 'q' + str(self.index)
         self.alias[state] = State(s, isEnd, isStart)
         self.index += 1
         return s
     def get(self, state: str):
-        if state == 'F':
-            state = 'x1'
         return self.alias[state].state
     def list(self) -> list[State]:
         return list(self.alias.values())
