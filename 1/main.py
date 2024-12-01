@@ -1,219 +1,161 @@
+from __future__ import annotations
+import re
 import csv
 import argparse
 
-DEFAULT_MIN_STATE_NAME = 'X'
-STATE_OUTPUT_SEPARATOR = '/'
-STATE_INPUT_SEPARATOR = '/'
-DEFAULT_GROUP_PREFIX = "_ "
-MINIMIZE_MEALY = 'mealy'
-MINIMIZE_MOORE = 'moore'
 
-def writeToCsv(fileName, data, delimiter=';'):
-    with open(fileName, 'w', newline='', encoding='ISO-8859-1') as file:
-        writer = csv.writer(file, delimiter=delimiter)
-        writer.writerows(data)
+class Transition:
+    def __init__(self, x1: str, y: str, x2: str | None):
+        self.x1 = x1
+        self.x2 = x2
+        self.y = y
 
-def readDataFromCsv(fileName):
-    with open(fileName, 'r', encoding='ISO-8859-1') as file:
-        reader = csv.reader(file, delimiter=";")
-        data = []
+class Gramma:
+    def __init__(self, isLeft: bool, transitions: list[Transition]):
+        self.transitions = transitions
+        self.isLeft = isLeft
+    def alphabet(self) -> list[str]:
+        a = set()
+        for transition in self.transitions:
+            a.add(transition.y)
+        return list(a)
 
-        for row in reader:
-            data.append(row)
-    return data
+class State:
+    def __init__(self, state: str, isEnd: bool):
+        self.state = state
+        self.isEnd = isEnd
 
+class MooreMachine:
+    def __init__(self, states: list[State], inputs: list[str], transitions: dict):
+        self.states = states
+        self.inputs = inputs
+        self.transitions = transitions
 
-def createMealyInputToTransitions(data, states):
-    outputs = {}
-    inputToTransitions = {}
+class StateAlias:
+    def __init__(self):
+        self.alias: dict = {}
+        self.index = 0
+    def add(self, state: str, isEnd: bool = False) -> str:
+        if state in self.alias:
+            return self.alias[state]
+        s = 'q' + str(self.index)
+        self.alias[state] = State(s, isEnd)
+        self.index += 1
+        return s
+    def get(self, state: str):
+        return self.alias[state].state
+    def list(self) -> list[State]:
+        return list(self.alias.values())
+    def print(self):
+        for k in self.alias.keys():
+            print(k, self.alias[k].state)
 
-    for transitions in data:
-        inputValue = transitions[0].strip()
+def ConvertGrammarToMoore(gramma: Gramma) -> MooreMachine:
+    transitions = {}
+    inputs = gramma.alphabet()
+    aliases = StateAlias()
 
-        for i, transition in enumerate(transitions[1:]):
-            state, output = transition.strip().split(STATE_OUTPUT_SEPARATOR)
-
-            if state not in outputs:
-                outputs[state] = set()
-            outputs[state].add(output.strip())
-
-            if inputValue not in inputToTransitions:
-                inputToTransitions[inputValue] = {}
-
-            inputToTransitions[inputValue][states[i]] = f"{state}{STATE_OUTPUT_SEPARATOR}{output}"
-
-    return inputToTransitions
-
-def readMealyFromCsv(fileName):
-    data = readDataFromCsv(fileName)
-
-    states = [state.strip() for state in data[0][1:]]
-
-    inputToTransitions = createMealyInputToTransitions(data[1:], states)
-    return states, inputToTransitions
-
-
-def createMooreInputToTransitions(data, states, outputs):
-    inputToTransitions = {}
-
-    for transitions in data:
-        inputValue = transitions[0].strip()
-
-        for i, transition in enumerate(transitions[1:]):
-            nextState = transition.strip()
-            currentState = states[i]
-            output = outputs[currentState]
-
-            if inputValue not in inputToTransitions:
-                inputToTransitions[inputValue] = {}
-
-            inputToTransitions[inputValue][currentState] = f"{nextState}{STATE_OUTPUT_SEPARATOR}{output}"
-    return inputToTransitions
-
-def readMooreFromCsv(fileName):
-    data = readDataFromCsv(fileName)
-
-    outputs = data[0][1:]
-    states = data[1][1:]
-
-    mooreStates = []
-    mooreStateOutputs = {}
-
-    for output, state in zip(outputs, states):
-        mooreStates.append(state.strip())
-        mooreStateOutputs[state.strip()] = output.strip()
-
-    inputToTransitions = createMooreInputToTransitions(data[2:], mooreStates, mooreStateOutputs)
-
-    return mooreStates, inputToTransitions
-
-def splitStatesInGroup(states, inputValueToTransitions, prevStateToGroup=None):
-    groups = {}
-    groupOutputs = {}
-    stateToGroup = {}
-
-    def splitStates(state, groupPrefix=DEFAULT_GROUP_PREFIX):
-        groupInputs = [groupPrefix]
-        outputs = []
-        for inputValue in inputValueToTransitions:
-            if prevStateToGroup is None:
-                groupInput = inputValueToTransitions[inputValue][state].split(STATE_INPUT_SEPARATOR)[1]
-                groupInputs.append(groupInput)
-                continue
-
-            groupInput = inputValueToTransitions[inputValue][state].split(STATE_INPUT_SEPARATOR)[0]
-            outputs.append(inputValueToTransitions[inputValue][state].split(STATE_INPUT_SEPARATOR)[1])
-
-            groupName = prevStateToGroup[groupInput]
-            groupInput = list(dict.fromkeys(prevStateToGroup.values())).index(groupName)
-            groupInputs.append(str(groupInput))
-
-        groupInputsStr = ' '.join(groupInputs)
-
-        if groupInputsStr not in groups.keys():
-            groups[groupInputsStr] = []
-        groups[groupInputsStr].append(state)
-        groupOutputs[groupInputsStr] = outputs
-        stateToGroup[state] = groupInputsStr
-
-    if isinstance(states, list):
-        for state in states:
-            splitStates(state)
+    if gramma.isLeft:
+        aliases.add('H', False)
+        aliases.add(gramma.transitions[0].x1, True)
     else:
-        for i, group in enumerate(states, start=1):
-            for state in states[group]:
-                splitStates(state, f'\{i}')
+        aliases.add('F', True)
 
-    return groups, groupOutputs, stateToGroup
+    # Создаем состояния для каждого нетерминала
+    for transition in gramma.transitions:
+        if transition.x1 is not None:
+            aliases.add(transition.x1)
+        if transition.x2 is not None:
+            aliases.add(transition.x2)
 
-
-def groupStatesToInputs(states, inputValueToTransitions):
-    groups, _, stateToGroup = splitStatesInGroup(states, inputValueToTransitions)
-    groups, _, stateToGroup = splitStatesInGroup(groups, inputValueToTransitions, stateToGroup)
-
-    while True:
-        newGroups, groupOutputs, stateToGroup = splitStatesInGroup(groups, inputValueToTransitions, stateToGroup)
-        isEqual = str(newGroups) == str(groups)
-        groups = newGroups
-
-        if isEqual:
-            break
-
-    return groups, groupOutputs
-
-
-def getStatesFromGroups(groups):
-    statesRow = ['']
-    for i in range(len(groups)):
-        state = DEFAULT_MIN_STATE_NAME + str(i)
-        statesRow.append(state)
-    return statesRow
-
-def getOutputsFromGroups(groupOutputs, groups):
-    outputsRow = ['']
-    for i in range(len(groups)):
-        output = groupOutputs[list(groups.keys())[i]][0]
-        outputsRow.append(output)
-    return outputsRow
-
-def generateTransitionsRows(inputValueToTransitions, groups, groupOutputs = None):
-    transitionsRows = []
-    for i, inputValue in enumerate(inputValueToTransitions):
-        row = [inputValue]
-        for group in groups:
-            groupStates = group.split(' ')[1:]
-            state = DEFAULT_MIN_STATE_NAME + str(groupStates[i])
-            if groupOutputs != None:
-                output = groupOutputs[group][i]
-                transition = state + STATE_INPUT_SEPARATOR + output
+    # Определяем переходы в зависимости от типа грамматики
+    for transition in gramma.transitions:
+        to = None
+        frm = None
+        if not gramma.isLeft:
+            frm = (aliases.get(transition.x1), transition.y)
+            if transition.x2 is None:
+                to = aliases.get('F')
             else:
-                transition = DEFAULT_MIN_STATE_NAME + str(groupStates[i])
-            row.append(transition)
+                to = aliases.get(transition.x2)
+        else:
+            to = aliases.get(transition.x1)
+            if transition.x2 is None:
+                frm = (aliases.get("H"), transition.y)
+            else:
+                frm = (aliases.get(transition.x2), transition.y)
+        if frm not in transitions:
+            transitions[frm] = []
+        transitions[frm].append(to)
 
-        transitionsRows.append(row)
-    return transitionsRows
+    aliases.print()
 
+    return MooreMachine(aliases.list(), inputs, transitions)
 
-def minimizeMealy(inputFileName, outputFileName):
-    mealyStates, inputValueToTransitions = readMealyFromCsv(inputFileName)
-    groups, groupOutputs = groupStatesToInputs(mealyStates, inputValueToTransitions)
+def ReadGramma(data: str) -> Gramma:
+    print(data)
 
-    statesRow = getStatesFromGroups(groups)
+    isLeftPatter = re.compile(r'<\w+>\s*[\wε]', re.MULTILINE)
+    isLeft = bool(len(isLeftPatter.findall(data)) > 0)
 
-    transitionsRows = generateTransitionsRows(inputValueToTransitions, groups, groupOutputs)
+    pattern = r'^\s*<(\w+)>\s*->\s*([\wε](?:\s+<\w+>)?(?:\s*\|\s*[\wε](?:\s+<\w+>)?)*)\s*$'
+    if isLeft:
+        pattern = r'^\s*<(\w+)>\s*->\s*((?:<\w+>\s+)?[\wε](?:\s*\|\s*(?:<\w+>\s+)?[\wε])*)\s*$'
 
-    data = [statesRow]
-    for transitionRow in transitionsRows:
-        data.append(transitionRow)
+    p = re.compile(pattern, re.MULTILINE)
 
-    writeToCsv(outputFileName, data)
+    gr = Gramma(False, [])
+    for transit in p.findall(data):
+        x1 = transit[0]
+        for t in str.split(transit[1], '|'):
+            tdata = str.strip(t).split(" ")
+            trans = Transition("", "", None)
+            trans.x1 = x1
+            yi = 0
+            xi = 1
+            if isLeft:
+                yi, xi, = xi, yi
+            if len(tdata) == 1:
+                yi = 0
+            trans.y = tdata[yi]
+            if len(tdata) == 2:
+                trans.x1 = x1
+                trans.x2 = tdata[xi][1:-1]
+            else:
+                trans.x2 = None
+            gr.transitions.append(trans)
+    return gr
 
+def SaveMooreMachineToCsv(moore_machine: MooreMachine, filename: str):
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file, delimiter=';')
 
-def minimizeMoore(inputFileName, outputFileName):
-    mooreStates, inputValueToTransitions = readMooreFromCsv(inputFileName)
-    groups, groupOutputs = groupStatesToInputs(mooreStates, inputValueToTransitions)
+        writer.writerow([''] + ['F' if s.isEnd else '' for s in moore_machine.states])
+        writer.writerow([''] + [s.state for s in moore_machine.states])
 
-    outputsRow = getOutputsFromGroups(groupOutputs, groups)
-    statesRow = getStatesFromGroups(groups)
+        transition_data = {input_symbol: [] for input_symbol in moore_machine.inputs}
 
-    transitionsRows = generateTransitionsRows(inputValueToTransitions, groups)
+        for input_symbol in moore_machine.inputs:
+            for state in moore_machine.states:
+                next_state = moore_machine.transitions.get((state.state, input_symbol), '')
+                transition_data[input_symbol].append(f"{','.join(next_state)}")
 
-    data = [outputsRow, statesRow]
-    for transitionRow in transitionsRows:
-        data.append(transitionRow)
+        for input_symbol in moore_machine.inputs:
+            row = [input_symbol] + transition_data[input_symbol]
+            writer.writerow(row)
 
-    writeToCsv(outputFileName, data)
+def ReadContent(path: str) -> str:
+    with open(path) as f:
+        return f.read()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some CSV files.')
-    parser.add_argument('command', type=str, help='Input CSV file for Mealy')
-    parser.add_argument('inputFileName', type=str, help='Input CSV file')
-    parser.add_argument('outputFileName', type=str, help='Output CSV file')
+    parser.add_argument('inputFile', type=str, help='Input txt')
+    parser.add_argument('outputFile', type=str, help='Output csv')
 
     args = parser.parse_args()
+    gr = ReadGramma(ReadContent(args.inputFile))
+    mr = ConvertGrammarToMoore(gr)
+    SaveMooreMachineToCsv(mr, args.outputFile)
 
-    if args.command == MINIMIZE_MEALY:
-        minimizeMealy(args.inputFileName, args.outputFileName)
-    elif args.command == MINIMIZE_MOORE:
-        minimizeMoore(args.inputFileName, args.outputFileName)
