@@ -3,7 +3,6 @@ import re
 import csv
 import argparse
 
-
 class Transition:
     def __init__(self, x1: str, y: str, x2: str | None):
         self.x1 = x1
@@ -63,14 +62,12 @@ def ConvertGrammarToMoore(gramma: Gramma) -> MooreMachine:
         aliases.add('F', True)
         aliases.add(gramma.transitions[0].x1, False, True)
 
-    # Создаем состояния для каждого нетерминала
     for transition in gramma.transitions:
         if transition.x1 is not None:
             aliases.add(transition.x1)
         if transition.x2 is not None:
             aliases.add(transition.x2)
 
-    # Определяем переходы в зависимости от типа грамматики
     for transition in gramma.transitions:
         to = None
         frm = None
