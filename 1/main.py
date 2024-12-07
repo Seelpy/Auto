@@ -81,8 +81,8 @@ class Determiner:
             for symbol in self.dfa.alphabet:
                 line = [symbol]
                 for state in self.dfa.transitions.keys():
-                    next_state = self.dfa.transitions[state].get(symbol, "-")
-                    line.append(renamed_state[next_state] if next_state != "-" else "-")
+                    next_state = self.dfa.transitions[state].get(symbol, "")
+                    line.append(renamed_state[next_state] if next_state != "" else "")
                 file.write(";".join(line) + "\n")
 
     def epsilon_closure(self, state):
@@ -143,7 +143,7 @@ class Determiner:
 
                     self.dfa.transitions.setdefault(current_state_name, {})[symbol] = processed_states[frozen_reachable]
                 else:
-                    self.dfa.transitions.setdefault(current_state_name, {})[symbol] = "-"
+                    self.dfa.transitions.setdefault(current_state_name, {})[symbol] = ""
 
 
 def determine_nfa(input_file, output_file):
