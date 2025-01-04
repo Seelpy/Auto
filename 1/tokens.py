@@ -9,11 +9,6 @@ class RegularInterface(ABC):
     def process(self, string: str, start: int) -> [str, str, int | None]:
         pass
 
-    @abstractmethod
-    def reset(self):
-        pass
-
-
 class Token(RegularInterface):
     def __init__(self, id: str, reg: str):
         self.id = id
@@ -32,6 +27,7 @@ class Token(RegularInterface):
                     return self.id, string[start: i], None
                 return "", "", i
             i += 1
+        self.reset()
         return self.id, string[start: i], None
 
     def reset(self):
@@ -45,9 +41,6 @@ class EmptyToken(RegularInterface):
     def process(self, string: str, start: int) -> [str, str, int | None]:
         return self.token.process(string, start)
 
-    def reset(self):
-        self.token.reset()
-
 class ConcreteToken(RegularInterface):
     def __init__(self, token: Token, value: str):
         self.token = token
@@ -60,9 +53,6 @@ class ConcreteToken(RegularInterface):
         if val != self.value:
             return token, "", start
         return token, val, None
-
-    def reset(self):
-        self.token.reset()
 
 
 ALL_DIGITS = "1|2|3|4|5|6|7|8|9|0"

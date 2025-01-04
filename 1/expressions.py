@@ -12,7 +12,6 @@ class Expression:
         start = 0
         for token in self.tokens:
             tokenId, find, errIdx = token.process(string, start)
-            token.reset()
             if errIdx is not None:
                 return errIdx
             elif len(tokenId) != 0:
