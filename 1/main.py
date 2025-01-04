@@ -23,23 +23,23 @@ class MooreState:
 
 class RegexToNFAConverter:
     def __init__(self, regularExpression: str):
-        self.alphabet = {"e"}
+        self.alphabet = {"ε"}
         self.states: List[MooreState] = []
         self.statesMap: Dict[str, int] = {}
         self.transitions: List[MooreTransition] = []
         self.regularExpression = regularExpression
         self.convert()
 
-    def addTransitionImpl(self, fromState: int, toState: int, ch: str = "e", needAddNewState: bool = False):
+    def addTransitionImpl(self, fromState: int, toState: int, ch: str = "ε", needAddNewState: bool = False):
         if needAddNewState:
             self.states.append(MooreState(f"S{toState}", "", {len(self.transitions)}))
         self.states[fromState].transitions.add(len(self.transitions))
         self.transitions.append(MooreTransition(fromState, {toState}, ch))
 
-    def addTransitionToNewState(self, fromState: int, toState: int, ch: str = "e"):
+    def addTransitionToNewState(self, fromState: int, toState: int, ch: str = "ε"):
         self.addTransitionImpl(fromState, toState, ch, True)
 
-    def addTransitionToExistState(self, fromState: int, toState: int, ch: str = "e"):
+    def addTransitionToExistState(self, fromState: int, toState: int, ch: str = "ε"):
         self.addTransitionImpl(fromState, toState, ch, False)
 
     def writeResultToCsvFile(self, filename: str):
@@ -56,7 +56,7 @@ class RegexToNFAConverter:
                         if t.fromState != self.states.index(state) or t.inSymbol != inSymbol:
                             continue
                         for toState in t.toStates:
-                            if toState == self.states.index(state) and inSymbol == "e":
+                            if toState == self.states.index(state) and inSymbol == "ε":
                                 continue
                             emptyTransitionsSet.add(self.states[toState].state)
 
@@ -71,7 +71,7 @@ class RegexToNFAConverter:
         stateIndexToBrackets = deque([set()])
 
         self.states.append(MooreState("S0"))
-        self.transitions.append(MooreTransition(0, {0}, "e"))
+        self.transitions.append(MooreTransition(0, {0}, "ε"))
 
         isBracketClose = False
         isBracketOpen = False
