@@ -1,0 +1,10 @@
+BEGIN
+    VAR BOOL i123$
+    i123 := isdf$
+    asd123 := 123$
+    asd124 := TRUE$
+    asd124 := True$
+    a125 := False$
+    a125 := FALSE$
+    b125 := 'apksldo1212asdasd'$
+END.

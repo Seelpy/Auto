@@ -16,4 +16,7 @@ if __name__ == "__main__":
         outFile = sys.argv[3]
 
     scaner = scaner.Scanner(expressions.expressions)
-    scaner.process("""VAR i123""")
+
+    with open('./data/in.txt', 'r', encoding='utf-8') as f:
+        data = f.read()
+        scaner.process(data)

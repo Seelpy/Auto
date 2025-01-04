@@ -11,11 +11,12 @@ class State:
 
 
 class Slider:
-    def __init__(self, states: list[State]):
+    def __init__(self, states: list[State], finishStates: list[State]):
         self.states: dict[str, State] = {state.name: state for state in states}
         self.initialState: State = states[0]
         self.currentState: State = states[0]
         self.outputString: str = ""
+        self.finishStates = finishStates
 
     def Move(self, input_value: str) -> None:
         if input_value in self.currentState.transitions.keys():
@@ -23,10 +24,12 @@ class Slider:
             self.currentState = self.states[next_state_name]
             self.outputString += input_value
         else:
-            print("SDASD")
             raise ValueError()
     def IsFinal(self) -> bool:
-        return len(self.currentState.transitions) == 0
+        return len(self.currentState.transitions) == 0 and self.IsPossibleFinish()
+
+    def IsPossibleFinish(self) -> bool:
+        return self.currentState.name in self.finishStates
 
     def GetOutputString(self) -> str:
         return self.outputString
