@@ -1,5 +1,5 @@
 import scaner
-import expressions
+import expressionsdata
 
 if __name__ == "__main__":
     import sys
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         inFile = sys.argv[2]
         outFile = sys.argv[3]
 
-    scaner = scaner.Scanner(expressions.expressions)
+    scaner = scaner.Scanner(expressionsdata.expressions)
 
     with open('./data/in.txt', 'r', encoding='utf-8') as f:
         data = f.read()

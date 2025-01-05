@@ -10,4 +10,10 @@ BEGIN
     /// 123///
     a125 := FALSE&
     b125 := 'apksldo1212asdasd'&
+    WRITE['12']&
+    WRITE[a12]&
+    READ&
+    READ[a12]&
+    READLN&
+    READ[a12]&
 END.

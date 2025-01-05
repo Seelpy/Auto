@@ -43,6 +43,9 @@ SpaceToken = EmptyToken(" ")
 TabToken = EmptyToken("(    )")
 SpacesToken = EmptyToken("( )*")
 
+LeftRoundBracketToken = EmptyToken("[")
+RightRoundBracketToken = EmptyToken("]")
+
 VarToken = ConcreteToken(tokensMap[KWORD_TOKEN], "VAR")
 BeginToken = ConcreteToken(tokensMap[KWORD_TOKEN], "BEGIN")
 EndToken = ConcreteToken(tokensMap[KWORD_TOKEN], "END")
@@ -56,3 +59,8 @@ LiteralToken = tokensMap[LITERAL_TOKEN]
 EndLineToken = ConcreteToken(tokensMap[SEPARATE_TOKEN], "&")
 CommentToken = tokensMap[COMMENT_TOKEN]
 FloatToken = tokensMap[FLOT_TOKEN]
+
+WriteToken = ConcreteToken(tokensMap[FUNC_TOKEN], "WRITE")
+ReadToken = ConcreteToken(tokensMap[FUNC_TOKEN], "READ")
+WritelnToken = ConcreteToken(tokensMap[FUNC_TOKEN], "WRITELN")
+ReadlnToken = ConcreteToken(tokensMap[FUNC_TOKEN], "READLN")

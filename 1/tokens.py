@@ -24,7 +24,7 @@ class Token(RegularInterface):
                 self.slider.Move(c)
             except:
                 if self.slider.IsPossibleFinish():
-                    return self.id, string[start: i], None
+                    break
                 return "", "", i
             i += 1
         self.reset()
