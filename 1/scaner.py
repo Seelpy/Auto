@@ -13,7 +13,8 @@ class Scanner:
             for ex in self.exs:
                 errIdxtmp = ex.Proccess(line)
                 if errIdxtmp is not None:
-                    errIdx = errIdxtmp
+                    if errIdx is None:
+                        errIdx = errIdxtmp
                 else:
                     errIdx = None
                     break

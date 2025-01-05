@@ -32,5 +32,5 @@ expressions = [
     Expression([SpacesToken, ReadlnToken, LeftRoundBracketToken, RightRoundBracketToken, EndLineToken]),
 
     # EMPTY
-    # Expression([SpacesToken])
+    Expression([SpacesToken])
 ]

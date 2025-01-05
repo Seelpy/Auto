@@ -1,15 +1,17 @@
 BEGIN
     /// HELLO WORLD ///
+    /// 123///
     VAR BOOL i123&
+
     i123 := isdf&
     asd123 := 123&
     asd124 := TRUE&
     asd124 := True&
     a125 := False&
     fa123 := 12331.123&
-    /// 123///
     a125 := FALSE&
     b125 := 'apksldo1212asdasd'&
+
     WRITE['12']&
     WRITE[a12]&
     READ&
