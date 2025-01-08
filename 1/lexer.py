@@ -20,7 +20,7 @@ class Lexer:
         self.tokens = tokens
         self.buffer = valueGetter()
         self.line = 1
-        self.column = 0
+        self.column = 1
 
     def nextToken(self) -> LexerToken | None:
         if len(self.buffer) == 0 and not self.appendNewBufferValue():
@@ -32,21 +32,21 @@ class Lexer:
             bufferIndex = 0
             tmpResult = ""
 
-            tmpLine = self.line
-            tmpColumn = self.column
-
             while True:
-                if self.buffer[bufferIndex] == "\n":
-                    tmpLine += 1
                 charResult = token.nextChar(self.buffer[bufferIndex])
                 if charResult == TokenProcessResult.SUCCESS:
                     tmpResult += self.buffer[bufferIndex]
                     bufferIndex += 1
                 if charResult == TokenProcessResult.END or (charResult == TokenProcessResult.SUCCESS and token.isEnd() and bufferIndex == len(self.buffer) and not self.appendNewBufferValue()):
-                    self.line, self.column = tmpLine, tmpColumn
                     self.buffer = self.buffer[bufferIndex:]
-                    self.bu = self.buffer[bufferIndex:]
-                    return LexerToken(token.id, tmpResult, (self.line, self.column))
+                    column = self.column
+                    line = self.line
+                    self.column += len(tmpResult)
+
+                    if tmpResult == "\n":
+                        self.column = 1
+                        self.line += 1
+                    return LexerToken(token.id, tmpResult, (line, column))
                 if charResult == TokenProcessResult.FAILED:
                     break
 
