@@ -36,6 +36,8 @@ class Lexer:
             tmpColumn = self.column
 
             while True:
+                if self.buffer[bufferIndex] == "\n":
+                    tmpLine += 1
                 charResult = token.nextChar(self.buffer[bufferIndex])
                 if charResult == TokenProcessResult.SUCCESS:
                     tmpResult += self.buffer[bufferIndex]
