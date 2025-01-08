@@ -1,21 +1,10 @@
-BEGIN
-    /// HELLO WORLD ///
-    /// 123///
-    VAR BOOL i123&
-
-    i123 := isdf&
-    asd123 := 123&
-    asd124 := TRUE&
-    asd124 := True&
-    a125 := False&
-    fa123 := 12331.123&
-    a125 := FALSE&
-    b125 := 'apksldo1212asdasd'&
-
-    WRITE['12']&
-    WRITE[a12]&
-    READ&
-    READ[a12]&
-    READLN&
-    READ[a12]&
-END.
+program example;
+var
+  x: integer;
+ str: array[1..10] of integer;
+begin
+  // Initialize x
+  x := 42;
+  {This is a block comment}
+  str[1] := x + 3.14
+end.

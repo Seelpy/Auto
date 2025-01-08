@@ -1,57 +1,34 @@
 import regtonka
 import nkatodka
-import csv
-import os
+import mindka
 import slider
 
-STATE_OUTPUT_SEPARATOR = '/'
-
-def readDataFromCsv(fileName) -> list[str]:
-    with open(fileName, 'r', encoding='ISO-8859-1') as file:
-        reader = csv.reader(file, delimiter=";")
-        data = []
-
-        for row in reader:
-            data.append(row)
-    return data
+from typing import List
 
 class RegToDKAConverter:
     def __init__(self):
         pass
     def convert(self, expression: str) -> slider.Slider:
-        self.expression = expression
-        regexToNFACovnerter = regtonka.RegexToNFAConverter(expression)
-        try:
-            os.remove("./data/nka.csv")
-            os.remove("./data/dka.csv")
-        except OSError as e:
-            print(f"Error deleting files: {e}")
+        nfa = regtonka.process_regex(expression)
+        dfa = nkatodka.process_nfa(*nfa)
+        states, input_symbols, transitions, outputs, initial_state = mindka.process_dfa(*dfa)
 
-        regexToNFACovnerter.writeResultToCsvFile("./data/nka.csv")
-        nkatodka.determine_nfa("./data/nka.csv", "./data/dka.csv")
-        data = self.readDKAFromCSV("./data/dka.csv")
-        return data
-    def readDKAFromCSV(self, path: str) -> slider.Slider:
-        data = readDataFromCsv(path)
-
-        outputs = data[0][1:]
-        states = data[1][1:]
+        sliderStates: List[slider.State] = [slider.State(initial_state)]
         finishStates = []
 
-        mooreStates: list[slider.State] = []
-
-        for output, state in zip(outputs, states):
-            mooreStates.append(slider.State(state))
-            if output == "F":
+        for state in states:
+            if outputs[state] == "F":
                 finishStates.append(state)
+            if state != initial_state:
+                sliderState = slider.State(state)
+                sliderStates.append(sliderState)
+            else:
+                sliderState = sliderStates[0]
 
-        for transitions in data[2:]:
-            input = transitions[0]
+            stateTransaction = transitions[state]
+            for input_symbol in input_symbols:
+                transaction = stateTransaction[input_symbol]
+                if transaction:
+                    sliderState.AddTransition(input_symbol, transaction)
 
-            for i, transition in enumerate(transitions[1:]):
-                if transition != "":
-                    if i >= len(mooreStates):
-                        print(i)
-                    mooreStates[i].AddTransition(input, transition)
-
-        return slider.Slider(mooreStates, finishStates)
+        return slider.Slider(sliderStates, finishStates)

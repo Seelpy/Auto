@@ -11,7 +11,7 @@ class State:
 
 
 class Slider:
-    def __init__(self, states: list[State], finishStates: list[State]):
+    def __init__(self, states: list[State], finishStates: list[str]):
         self.states: dict[str, State] = {state.name: state for state in states}
         self.initialState: State = states[0]
         self.currentState: State = states[0]

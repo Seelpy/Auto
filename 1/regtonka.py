@@ -1,256 +1,172 @@
-from collections import deque
-from typing import Set, Dict, List
-from abc import ABC, abstractmethod
+class RegexNode:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
 
 
-class MooreTransition:
-    def __init__(self, fromState: int, toStates: Set[int], inSymbol: str):
-        if toStates is None:
-            toStates = set()
-        self.fromState = fromState
-        self.toStates = toStates
-        self.inSymbol = inSymbol
+class State:
+    def __init__(self):
+        self.transitions = {}
+        self.epsilon_transitions = []
+
+    def add_transition(self, symbol, state):
+        if symbol not in self.transitions:
+            self.transitions[symbol] = []
+        self.transitions[symbol].append(state)
+
+    def add_epsilon_transition(self, state):
+        self.epsilon_transitions.append(state)
 
 
-class MooreState:
-    def __init__(self, state: str = "", outSymbol: str = "", transitions: Set[int] = None):
-        if transitions is None:
-            transitions = set()
-        self.state = state
-        self.outSymbol = outSymbol
-        self.transitions = transitions
+class NFA:
+    def __init__(self, start_state, accept_state):
+        self.start_state = start_state
+        self.accept_state = accept_state
 
 
-class RegexToNFAConverter:
-    def __init__(self, regularExpression: str):
-        self.alphabet = {"ε"}
-        self.states: List[MooreState] = []
-        self.statesMap: Dict[str, int] = {}
-        self.transitions: List[MooreTransition] = []
-        self.regularExpression = regularExpression
-        self.convert()
-
-    def addTransitionImpl(self, fromState: int, toState: int, ch: str = "ε", needAddNewState: bool = False):
-        if needAddNewState:
-            self.states.append(MooreState(f"S{toState}", "", {len(self.transitions)}))
-        self.states[fromState].transitions.add(len(self.transitions))
-        self.transitions.append(MooreTransition(fromState, {toState}, ch))
-
-    def addTransitionToNewState(self, fromState: int, toState: int, ch: str = "ε"):
-        self.addTransitionImpl(fromState, toState, ch, True)
-
-    def addTransitionToExistState(self, fromState: int, toState: int, ch: str = "ε"):
-        self.addTransitionImpl(fromState, toState, ch, False)
-
-    def writeResultToCsvFile(self, filename: str):
-        with open(filename, 'w') as file:
-            file.write(";".join([""] + [state.outSymbol for state in self.states]) + "\n")
-            file.write(";".join([""] + [state.state for state in self.states]) + "\n")
-
-            for inSymbol in self.alphabet:
-                file.write(inSymbol)
-                for state in self.states:
-                    emptyTransitionsSet = set()
-                    for transition in state.transitions:
-                        t = self.transitions[transition]
-                        if t.fromState != self.states.index(state) or t.inSymbol != inSymbol:
-                            continue
-                        for toState in t.toStates:
-                            if toState == self.states.index(state) and inSymbol == "ε":
-                                continue
-                            emptyTransitionsSet.add(self.states[toState].state)
-
-                    emptyTransitions = ",".join(emptyTransitionsSet)
-                    file.write(f";{emptyTransitions}")
-                file.write("\n")
-
-    def convert(self):
-        stateCounter = 0
-        stateIndex = 0
-        preBracketStateIndex = deque([0])
-        stateIndexToBrackets = deque([set()])
-
-        self.states.append(MooreState("S0"))
-        self.transitions.append(MooreTransition(0, {0}, "ε"))
-
-        isBracketClose = False
-        isBracketOpen = False
-
-        for c in self.regularExpression:
-            state = getRegularState(c)
-            [isBracketClose,
-             isBracketOpen,
-             stateCounter,
-             stateIndex,
-             preBracketStateIndex,
-             stateIndexToBrackets] = state.To(
-                self, isBracketClose, isBracketOpen,
-                stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets, c
-            )
-
-        stateCounter += 1
-        self.states.append(MooreState(f"S{stateCounter}", "F"))
-        if stateIndexToBrackets:
-            stateIndexToBrackets[-1].add(stateIndex)
-
-        if stateIndexToBrackets and stateIndexToBrackets[-1]:
-            for stateInd in stateIndexToBrackets[-1]:
-                self.addTransitionToExistState(stateInd, stateCounter)
+def is_literal(value):
+    return value not in "+*()|"
 
 
-class RegularState(ABC):
-    @abstractmethod
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        pass
+def parse_regex(expression):
+    def parse(tokens):
+        def get_next():
+            return tokens.pop(0) if tokens else None
+
+        def parse_primary():
+            token = get_next()
+            if token == "\\":
+                escaped = get_next()
+                if is_literal(escaped):
+                    tokens.insert(0, escaped)
+                else:
+                    return RegexNode(escaped)
+            if is_literal(token):
+                return RegexNode(token)
+            elif token == "(":
+                node = parse_expression()
+                if get_next() != ")":
+                    raise ValueError("Mismatched parentheses")
+                return node
+            raise ValueError(f"Unexpected token: {token}")
+
+        def parse_factor():
+            node = parse_primary()
+            while tokens and tokens[0] in ("*", "+"):
+                op = "multiply" if get_next() == "*" else "add"
+                node = RegexNode(op, left=node)
+            return node
+
+        def parse_term():
+            node = parse_factor()
+            while tokens and tokens[0] and (is_literal(tokens[0]) or tokens[0] == "("):
+                right = parse_factor()
+                node = RegexNode("concat", left=node, right=right)
+            return node
+
+        def parse_expression():
+            node = parse_term()
+            while tokens and tokens[0] == "|":
+                get_next()
+                right = parse_term()
+                node = RegexNode("or", left=node, right=right)
+            return node
+
+        return parse_expression()
+
+    tokens = list(expression)
+    return parse(tokens)
 
 
-def getRegularState(c: str) -> RegularState:
-    if c == "|":
-        return RegularStateOr()
-    elif c == "(":
-        return RegularStateOpen()
-    elif c == ")":
-        return RegularStateClose()
-    elif c == "+":
-        return RegularStatePlus()
-    elif c == "*":
-        return RegularStateMulti()
-    else:
-        return RegularStateDefault()
+def build_nfa(node):
+    if node is None:
+        return None
+
+    if node.value not in ("concat", "or", "add", "multiply"):
+        start = State()
+        accept = State()
+        start.add_transition(node.value, accept)
+        return NFA(start, accept)
+    elif node.value == "concat":
+        left_nfa = build_nfa(node.left)
+        right_nfa = build_nfa(node.right)
+        left_nfa.accept_state.add_epsilon_transition(right_nfa.start_state)
+        return NFA(left_nfa.start_state, right_nfa.accept_state)
+    elif node.value == "or":
+        start = State()
+        accept = State()
+        left_nfa = build_nfa(node.left)
+        right_nfa = build_nfa(node.right)
+        start.add_epsilon_transition(left_nfa.start_state)
+        start.add_epsilon_transition(right_nfa.start_state)
+        left_nfa.accept_state.add_epsilon_transition(accept)
+        right_nfa.accept_state.add_epsilon_transition(accept)
+        return NFA(start, accept)
+    elif node.value == "multiply":
+        start = State()
+        accept = State()
+        sub_nfa = build_nfa(node.left)
+        start.add_epsilon_transition(sub_nfa.start_state)
+        start.add_epsilon_transition(accept)
+        sub_nfa.accept_state.add_epsilon_transition(sub_nfa.start_state)
+        sub_nfa.accept_state.add_epsilon_transition(accept)
+        return NFA(start, accept)
+    elif node.value == "add":
+        start = State()
+        accept = State()
+        sub_nfa = build_nfa(node.left)
+        start.add_epsilon_transition(sub_nfa.start_state)
+        sub_nfa.accept_state.add_epsilon_transition(sub_nfa.start_state)
+        sub_nfa.accept_state.add_epsilon_transition(accept)
+        return NFA(start, accept)
+
+    raise ValueError(f"Unexpected node value: {node.value}")
 
 
-class RegularStateOr(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        if isBracketClose:
-            preBracketStateIndex.pop()
+def adapt_nfa(nfa: NFA):
+    state_index = {}
+    index = 0
 
-        stateIndexToBrackets[-1].add(stateIndex)
-        stateIndex = preBracketStateIndex[-1]
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
+    def assign_indices(state):
+        nonlocal index
+        if state not in state_index:
+            state_index[state] = f"S{index}"
+            index += 1
+            for symbol, states in state.transitions.items():
+                for s in states:
+                    assign_indices(s)
+            for s in state.epsilon_transitions:
+                assign_indices(s)
 
+    assign_indices(nfa.start_state)
 
-class RegularStateOpen(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        stateCounter += 1
-        converter.states.append(MooreState(f"S{stateCounter}"))
+    initial_state = state_index[nfa.start_state]
+    finite_state = state_index[nfa.accept_state]
 
-        converter.addTransitionToExistState(stateCounter, stateCounter)
-        converter.addTransitionToExistState(stateIndex, stateCounter)
+    machine = {state_index[s]: {"is_finite": name == finite_state, "transitions": {}} for s, name in
+               state_index.items()}
 
-        stateIndex = stateCounter
-        stateIndexToBrackets.append(set())
-        preBracketStateIndex.append(stateCounter)
+    for state, name in state_index.items():
+        for symbol, states in state.transitions.items():
+            machine[name]["transitions"].setdefault(symbol, set()).update(state_index[s] for s in states)
+        for s in state.epsilon_transitions:
+            machine[name]["transitions"].setdefault("ε", set()).add(state_index[s])
 
-        isBracketOpen = True
-        isBracketClose = False
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
+    symbols = set()
+    for state in machine:
+        trans = machine[state]["transitions"]
+        for symbol in trans:
+            symbols.add(symbol)
 
+    for state in machine:
+        for symbol in symbols:
+            machine[state]["transitions"].setdefault(symbol, set())
 
-class RegularStateClose(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        stateCounter += 1
-        if isBracketOpen:
-            converter.addTransitionToNewState(stateIndex, stateCounter)
-            stateIndex = stateCounter
-            preBracketStateIndex.pop()
-            stateIndexToBrackets.pop()
-        else:
-            if isBracketClose:
-                preBracketStateIndex.pop()
-
-            converter.states.append(MooreState(f"S{stateCounter}"))
-            converter.addTransitionToExistState(stateIndex, stateCounter)
-            if stateIndexToBrackets[-1]:
-                for stateInd in stateIndexToBrackets[-1]:
-                    converter.addTransitionToExistState(stateInd, stateCounter)
-            stateIndexToBrackets.pop()
-            stateIndex = stateCounter
-            isBracketClose = True
-        isBracketOpen = False
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
+    return initial_state, finite_state, machine
 
 
-class RegularStatePlus(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        stateCounter += 1
-        if isBracketClose:
-            converter.addTransitionToNewState(stateIndex, stateCounter)
-            transition = converter.transitions[next(iter(converter.states[preBracketStateIndex[-1]].transitions))]
-            converter.addTransitionToExistState(stateCounter, preBracketStateIndex[-1], transition.inSymbol)
-            preBracketStateIndex.pop()
-        else:
-            converter.addTransitionToNewState(stateIndex, stateCounter)
-            transition = converter.transitions[next(iter(converter.states[stateIndex].transitions))]
-            converter.addTransitionToExistState(stateCounter, stateIndex, transition.inSymbol)
-
-        stateIndex = stateCounter
-        isBracketOpen = False
-        isBracketClose = False
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
-
-
-class RegularStateMulti(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        stateCounter += 1
-        if isBracketClose:
-            converter.addTransitionToNewState(stateIndex, stateCounter)
-            transition = converter.transitions[next(iter(converter.states[preBracketStateIndex[-1]].transitions))]
-            converter.addTransitionToExistState(stateIndex, preBracketStateIndex[-1], transition.inSymbol)
-            converter.addTransitionToExistState(transition.fromState, stateCounter)
-            preBracketStateIndex.pop()
-        else:
-            converter.addTransitionToNewState(stateIndex, stateCounter)
-            transition = converter.transitions[next(iter(converter.states[stateIndex].transitions))]
-            converter.addTransitionToExistState(stateCounter, stateIndex, transition.inSymbol)
-            converter.addTransitionToExistState(transition.fromState, stateCounter)
-
-        stateIndex = stateCounter
-        isBracketOpen = False
-        isBracketClose = False
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
-
-
-class RegularStateDefault(RegularState):
-    def To(self, converter: RegexToNFAConverter, isBracketClose: bool, isBracketOpen: bool, stateCounter: int,
-           stateIndex: int, preBracketStateIndex: deque[int],
-           stateIndexToBrackets: deque[set], c: str = ""):
-        stateCounter += 1
-        if isBracketClose:
-            preBracketStateIndex.pop()
-
-        converter.alphabet.add(c)
-        converter.addTransitionToNewState(stateIndex, stateCounter, c)
-        stateIndex = stateCounter
-        isBracketOpen = False
-        isBracketClose = False
-        return [isBracketClose, isBracketOpen, stateCounter, stateIndex, preBracketStateIndex, stateIndexToBrackets]
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) not in {3, 4}:
-        print("main.py <outputFile> regularExpression")
-        sys.exit(1)
-
-    outputFile = sys.argv[1]
-    regularExpression = sys.argv[2]
-
-    if len(sys.argv) == 4:
-        outputFile = sys.argv[2]
-        regularExpression = sys.argv[3]
-
-    rtNfa = RegexToNFAConverter(regularExpression)
-    rtNfa.writeResultToCsvFile(outputFile)
+def process_regex(regex_pattern):
+    tree = parse_regex(regex_pattern)
+    nfa = build_nfa(tree)
+    return adapt_nfa(nfa)
