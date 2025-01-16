@@ -54,7 +54,9 @@ class Lexer:
                 if bufferIndex == len(self.buffer) and not self.appendNewBufferValue():
                     break
 
-        return LexerToken("BAD", self.buffer[0], (self.line, self.column + 1))
+        tmp = self.buffer
+        self.buffer = self.buffer[1:]
+        return LexerToken("BAD", tmp[0], (self.line, self.column + 1))
 
     def appendNewBufferValue(self) -> bool:
         data = self.valueGetter()
