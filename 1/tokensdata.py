@@ -7,45 +7,57 @@ DIGIT_NO_ZERO = '(1|2|3|4|5|6|7|8|9)'
 DIGIT = f'(0|{DIGIT_NO_ZERO})'
 SYMBOL = f'({DIGIT}|{LETTER})'
 NUMBER = f'({DIGIT}|{DIGIT_NO_ZERO}{DIGIT}*)'
+E_POSITIV = f'(e{DIGIT}+)|(e+{DIGIT}+)'
+E_NEGATIV = f'(e-{DIGIT}+)'
+
+SEPARATOR = ",.:;*/+-()[]=<>\n\r\t"
 
 token_types = [
-    Token('BLOCK_COMMENT', f'{{({SYMBOL}| )*}}'),
-    Token('LINE_COMMENT', f'//({SYMBOL}| )*'),
-    Token('ARRAY', '(A|a)(R|r)(R|r)(A|a)(Y|y)'),
-    Token('BEGIN', '(B|b)(E|e)(G|g)(I|i)(N|n)'),
-    Token('ELSE', '(E|e)(L|l)(S|s)(E|e)'),
-    Token('END', '(E|e)(N|n)(D|d)'),
-    Token('IF', '(I|i)(F|f)'),
-    Token('OF', '(O|o)(F|f)'),
-    Token('OR', '(O|o)(R|r)'),
-    Token('PROGRAM', '(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)'),
+    Token('SPACE', f' |\n|\t|\r', isSeparate=True, needMiss=True),
+    Token('BLOCK_COMMENT', f'{{({SYMBOL}| )*}}', isSeparate=True, needMiss=True),
+    Token('LINE_COMMENT', f'//({SYMBOL}| )*', isSeparate=True, needMiss=True),
+    Token('ARRAY', '(A|a)self.buffer[bufferIndex](R|r)(R|r)(A|a)(Y|y)', needAfterSeparate=True),
+    Token('BEGIN', '(B|b)(E|e)(G|g)(I|i)(N|n)', needAfterSeparate=True),
+    Token('ELSE', '(E|e)(L|l)(S|s)(E|e)', needAfterSeparate=True),
+    Token('END', '(E|e)(N|n)(D|d)', needAfterSeparate=True),
+    Token('IF', '(I|i)(F|f)', needAfterSeparate=True),
+    Token('OF', '(O|o)(F|f)', needAfterSeparate=True),
+    Token('OR', '(O|o)(R|r)', needAfterSeparate=True),
+    Token('PROGRAM', '(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)', needAfterSeparate=True),
     Token('PROCEDURE', '(P|p)(R|r)(O|o)(C|c)(E|e)(D|d)(U|u)(R|r)(E|e)'),
-    Token('THEN', '(T|t)(H|h)(E|e)(N|n)'),
-    Token('TYPE', '(T|t)(Y|y)(P|p)(E|e)'),
-    Token('VAR', '(V|v)(A|a)(R|r)'),
-    Token('MULTIPLICATION', '\\*'),
-    Token('PLUS', '\\+'),
-    Token('MINUS', '-'),
-    Token('DIVIDE', '/'),
-    Token('SEMICOLON', ';'),
-    Token('COMMA', ','),
-    Token('LEFT_PAREN', '\\('),
-    Token('RIGHT_PAREN', '\\)'),
-    Token('LEFT_BRACKET', '['),
-    Token('RIGHT_BRACKET', ']'),
-    Token('EQ', '='),
-    Token('GREATER', '>'),
-    Token('LESS', '<'),
-    Token('LESS_EQ', '<='),
-    Token('GREATER_EQ', '>='),
-    Token('NOT_EQ', '<>'),
-    Token('ASSIGN', ':='),
-    Token('COLON', ':'),
-    Token('DOT', '.'),
-    Token('IDENTIFIER', f'({LETTER}|_)({SYMBOL}|_)*'),
-    Token('STRING', f'\'{SYMBOL}*\''),
-    Token('FLOAT', f'(ε|-){NUMBER}.{DIGIT}+'),
-    Token('INTEGER', f'(ε|-){NUMBER}'),
-    Token('SPACE', f' |\n|\t|\r'),
-    Token('BAD', f'{SYMBOL}'),
+    Token('THEN', '(T|t)(H|h)(E|e)(N|n)', needAfterSeparate=True),
+    Token('TYPE', '(T|t)(Y|y)(P|p)(E|e)', needAfterSeparate=True),
+    Token('VAR', '(V|v)(A|a)(R|r)', needAfterSeparate=True),
+    Token('MULTIPLICATION', '\\*', isSeparate=True),
+    Token('PLUS', '\\+', isSeparate=True),
+    Token('MINUS', '-', isSeparate=True),
+    Token('DIVIDE', '/', isSeparate=True),
+    Token('SEMICOLON', ';', isSeparate=True),
+    Token('COMMA', ',', isSeparate=True),
+    Token('LEFT_PAREN', '\\(', isSeparate=True),
+    Token('RIGHT_PAREN', '\\)', isSeparate=True),
+    Token('LEFT_BRACKET', '[', isSeparate=True),
+    Token('RIGHT_BRACKET', ']', isSeparate=True),
+    Token('EQ', '=', isSeparate=True),
+    Token('NOT_EQ', '<>', isSeparate=True),
+    Token('GREATER', '>', isSeparate=True),
+    Token('LESS', '<', isSeparate=True),
+    Token('LESS_EQ', '<=', isSeparate=True),
+    Token('GREATER_EQ', '>=', isSeparate=True),
+    Token('ASSIGN', ':=', isSeparate=True),
+    Token('COLON', ':', isSeparate=True),
+    Token('DOT', '.', isSeparate=True),
+    Token('IDENTIFIER', f'({LETTER}|_)({SYMBOL}|_)*', maxLen=256, needAfterSeparate=True),
+    Token('STRING', f'\'{SYMBOL}*\'', needAfterSeparate=True),
+    Token('FLOAT', f'((ε|-){NUMBER}.{DIGIT}+({E_POSITIV}|{E_NEGATIV}|ε))|((ε|-){NUMBER}({E_NEGATIV}))', needAfterSeparate=True),
+    Token('INTEGER', f'(ε|-){NUMBER}({E_POSITIV}|ε)', maxLen=16, needAfterSeparate=True),
 ]
+
+# TODO проверка на длину идентификаторы +++++
+# TODO комментарий нужно сбрасывать +++++
+# TODO 1a - error ++++++
+# TODO e -  ++++++
+# TODO 123a123 - ошибка
+# TODO <> - неравно добавить   ++++
+# TODO a.b - тоже нужно ь ++++
+# TODO стаистика по встреченным идентификаторам

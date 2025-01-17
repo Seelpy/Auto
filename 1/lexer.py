@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, List
 from tokens import Token, TokenProcessResult
+from tokensdata import SEPARATOR
 
 
 class LexerToken:
@@ -26,6 +27,7 @@ class Lexer:
         if len(self.buffer) == 0 and not self.appendNewBufferValue():
             return None
 
+
         for token in self.tokens:
             token.reset()
 
@@ -39,24 +41,38 @@ class Lexer:
                     bufferIndex += 1
                 if charResult == TokenProcessResult.END or (charResult == TokenProcessResult.SUCCESS and token.isEnd() and bufferIndex == len(self.buffer) and not self.appendNewBufferValue()):
                     self.buffer = self.buffer[bufferIndex:]
-                    column = self.column
-                    line = self.line
                     self.column += len(tmpResult)
 
                     if tmpResult == "\n":
                         self.column = 1
                         self.line += 1
-                    return LexerToken(token.id, tmpResult, (line, column))
+
+                    column = self.column
+                    line = self.line
+
+                    if token.isCorrectLexema(tmpResult, self.buffer[0] in SEPARATOR and tmpResult[0] not in SEPARATOR if len(self.buffer) != 0 else True):
+                        self.setIsLastBeSeparate(token.isSeparate)
+                        return LexerToken(token.id, tmpResult, (line, column))
+                    bad = self.getBad(line, column, tmpResult)
+                    self.buffer = self.buffer[len(bad.value) - len(tmpResult):]
+                    return bad
+                if charResult == TokenProcessResult.MISS:
+                    self.buffer = self.buffer[bufferIndex:]
+                    self.column = 1
+                    self.line += tmpResult.count("\n")
+
+                    self.setIsLastBeSeparate(token.isSeparate)
+
+                    bufferIndex = 0
+                    self.column += len(tmpResult)
+                    continue
                 if charResult == TokenProcessResult.FAILED:
                     break
-
-
                 if bufferIndex == len(self.buffer) and not self.appendNewBufferValue():
                     break
 
-        tmp = self.buffer
-        self.buffer = self.buffer[1:]
-        return LexerToken("BAD", tmp[0], (self.line, self.column + 1))
+        self.buffer = ""
+        return self.getBad(self.line, self.column)
 
     def appendNewBufferValue(self) -> bool:
         data = self.valueGetter()
@@ -64,4 +80,16 @@ class Lexer:
             return False
         self.buffer += data
         return True
+
+    def getBad(self, line: int, column: int, lexem = None) -> LexerToken:
+        tmp = self.buffer
+        for sep in SEPARATOR:
+            tmp = tmp.replace(sep, " ")
+        if lexem is None:
+            return LexerToken("BAD", tmp.split(" ")[0], (self.line, self.column))
+        return LexerToken("BAD", lexem + tmp.split(" ")[0], (line, column - len(lexem) -1))
+
+    def setIsLastBeSeparate(self, v: bool):
+        self.isLastBeSeparate = v
+
 

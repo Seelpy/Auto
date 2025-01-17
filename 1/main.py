@@ -24,5 +24,8 @@ if __name__ == "__main__":
     with open('./data/in.txt', 'r', encoding='utf-8') as f:
         lexer = lexer.Lexer(tokensdata.token_types, getDataGetter(f))
         while (token := lexer.nextToken()) is not None:
-            if token.type != "SPACE":
-                print(token)
+            if token.type == "SPACE":
+                continue
+            print(token)
+            if token.type == "BAD":
+                pass
