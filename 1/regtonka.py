@@ -46,7 +46,8 @@ def parse_regex(expression):
                 return RegexNode(token)
             elif token == "(":
                 node = parse_expression()
-                if get_next() != ")":
+                v = get_next()
+                if v != ")":
                     raise ValueError("Mismatched parentheses")
                 return node
             raise ValueError(f"Unexpected token: {token}")

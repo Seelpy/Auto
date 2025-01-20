@@ -28,48 +28,52 @@ class Lexer:
             return None
 
 
-        for token in self.tokens:
-            token.reset()
+        needContinie = True
+        while needContinie:
+            needContinie = False
+            for token in self.tokens:
+                token.reset()
 
-            bufferIndex = 0
-            tmpResult = ""
+                bufferIndex = 0
+                tmpResult = ""
 
-            while True:
-                charResult = token.nextChar(self.buffer[bufferIndex])
-                if charResult == TokenProcessResult.SUCCESS:
-                    tmpResult += self.buffer[bufferIndex]
-                    bufferIndex += 1
-                if charResult == TokenProcessResult.END or (charResult == TokenProcessResult.SUCCESS and token.isEnd() and bufferIndex == len(self.buffer) and not self.appendNewBufferValue()):
-                    self.buffer = self.buffer[bufferIndex:]
-                    self.column += len(tmpResult)
+                while True:
+                    charResult = token.nextChar(self.buffer[bufferIndex])
+                    if charResult == TokenProcessResult.SUCCESS:
+                        tmpResult += self.buffer[bufferIndex]
+                        bufferIndex += 1
+                    if charResult == TokenProcessResult.END or (charResult == TokenProcessResult.SUCCESS and token.isEnd() and bufferIndex == len(self.buffer) and not self.appendNewBufferValue()):
+                        self.buffer = self.buffer[bufferIndex:]
+                        self.column += len(tmpResult)
 
-                    if tmpResult == "\n":
+                        if tmpResult == "\n":
+                            self.column = 1
+                            self.line += tmpResult.count("\n")
+
+                        column = self.column
+                        line = self.line
+
+                        if token.isCorrectLexema(tmpResult, True):
+                            self.setIsLastBeSeparate(token.isSeparate)
+                            return LexerToken(token.id, tmpResult, (line, column))
+                        bad = self.getBad(line, column, tmpResult)
+                        self.buffer = self.buffer[len(bad.value) - len(tmpResult):]
+                        return bad
+                    if charResult == TokenProcessResult.MISS:
+                        self.buffer = self.buffer[bufferIndex:]
                         self.column = 1
-                        self.line += 1
+                        self.line += tmpResult.count("\n")
 
-                    column = self.column
-                    line = self.line
-
-                    if token.isCorrectLexema(tmpResult, self.buffer[0] in SEPARATOR and tmpResult[0] not in SEPARATOR if len(self.buffer) != 0 else True):
                         self.setIsLastBeSeparate(token.isSeparate)
-                        return LexerToken(token.id, tmpResult, (line, column))
-                    bad = self.getBad(line, column, tmpResult)
-                    self.buffer = self.buffer[len(bad.value) - len(tmpResult):]
-                    return bad
-                if charResult == TokenProcessResult.MISS:
-                    self.buffer = self.buffer[bufferIndex:]
-                    self.column = 1
-                    self.line += tmpResult.count("\n")
 
-                    self.setIsLastBeSeparate(token.isSeparate)
-
-                    bufferIndex = 0
-                    self.column += len(tmpResult)
-                    continue
-                if charResult == TokenProcessResult.FAILED:
-                    break
-                if bufferIndex == len(self.buffer) and not self.appendNewBufferValue():
-                    break
+                        bufferIndex = 0
+                        self.column += len(tmpResult)
+                        needContinie = True
+                        break
+                    if charResult == TokenProcessResult.FAILED:
+                        break
+                    if bufferIndex == len(self.buffer) and not self.appendNewBufferValue():
+                        break
 
         self.buffer = ""
         return self.getBad(self.line, self.column)
