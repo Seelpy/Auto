@@ -47,6 +47,10 @@ class Lexer:
                         bufferIndex += 1
                     if charResult == TokenProcessResult.END or (charResult == TokenProcessResult.SUCCESS and token.isEnd() and bufferIndex == len(self.buffer) and not self.appendNewBufferValue()):
                         tmpBuff = self.buffer
+
+                        column = self.column
+                        line = self.line
+
                         self.buffer = self.buffer[bufferIndex:]
                         self.column += len(tmpResult)
 
@@ -54,22 +58,23 @@ class Lexer:
                             self.column = 1
                             self.line += tmpResult.count("\n")
 
-                        column = self.column
-                        line = self.line
 
-                        if token.isCorrectLexema(tmpResult, self.buffer[0] in SEPARATOR):
+                        if token.isCorrectLexema(tmpResult, True if len(self.buffer) == 0 and not self.appendNewBufferValue() else self.buffer[0] in SEPARATOR):
                             self.setIsLastBeSeparate(token.isSeparate)
                             return LexerToken(token.id, tmpResult, (line, column))
                         self.isBad = True
                         return self.getBad(line, column, tmpBuff, tmpResult)
                     if charResult == TokenProcessResult.MISS:
                         self.buffer = self.buffer[bufferIndex:]
-                        self.column = 1
-                        self.line += tmpResult.count("\n")
+
+                        self.column += len(tmpResult)
+
+                        if tmpResult == "\n":
+                            self.column = 1
+                            self.line += tmpResult.count("\n")
 
                         self.setIsLastBeSeparate(token.isSeparate)
 
-                        self.column += len(tmpResult)
                         needContinie = True
                         break
                     if charResult == TokenProcessResult.FAILED:

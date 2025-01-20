@@ -12,7 +12,7 @@ NUMBER = f'({DIGIT}|{DIGIT_NO_ZERO}{DIGIT}*)'
 E_POSITIV = f'((e|E){DIGIT}+)|((e|E)\\+{DIGIT}+)'
 E_NEGATIV = f'((e|E)-{DIGIT}+)'
 
-SEPARATOR = ",.:;*/+-()[]=<>\n\r\t"
+SEPARATOR = ",.:;*/+-()[]=<>\n\r\t "
 
 token_types = [
     Token('BLOCK_COMMENT', f'{{({BIG_SYM}| )*}}', isSeparate=True, needMiss=True),
