@@ -242,7 +242,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) not in {3, 4}:
-        print("1.py <outputFile> regularExpression")
+        print("rtn.py <outputFile> regularExpression")
         sys.exit(1)
 
     outputFile = sys.argv[1]
