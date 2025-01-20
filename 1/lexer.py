@@ -99,7 +99,7 @@ class Lexer:
             tmp = tmp.replace(sep, " ")
         if lexem is None:
             return LexerToken("BAD", tmp.split(" ")[0], (self.line, self.column))
-        return LexerToken("BAD", tmp.split(" ")[0], (line, column - len(lexem) -1))
+        return LexerToken("BAD", tmp.split(" ")[0], (line, column))
 
     def setIsLastBeSeparate(self, v: bool):
         self.isLastBeSeparate = v
