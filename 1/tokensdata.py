@@ -1,5 +1,6 @@
 from tokens import *
 
+BIG_SYM = "0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|!|\"|#|$|%|&|'|\\(|\\)|\*|\+|,|-|.|/|:|;|<|=|>|?|@|[|]|^|_|`|{|\\||}|~| |\t|\r"
 LETTER_LOWER = '(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)'
 LETTER_UPPER = '(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z)'
 LETTER = f'({LETTER_LOWER}|{LETTER_UPPER})'
@@ -13,9 +14,8 @@ E_NEGATIV = f'(e-{DIGIT}+)'
 SEPARATOR = ",.:;*/+-()[]=<>\n\r\t"
 
 token_types = [
-    Token('SPACE', f' |\n|\t|\r', isSeparate=True, needMiss=True),
-    Token('BLOCK_COMMENT', f'{{({SYMBOL}| )*}}', isSeparate=True, needMiss=True),
-    Token('LINE_COMMENT', f'//({SYMBOL}| )*', isSeparate=True, needMiss=True),
+    Token('BLOCK_COMMENT', f'{{({BIG_SYM}| )*}}', isSeparate=True, needMiss=True),
+    Token('LINE_COMMENT', f'//({BIG_SYM}| )*', isSeparate=True, needMiss=True),
     Token('ARRAY', '(A|a)self.buffer[bufferIndex](R|r)(R|r)(A|a)(Y|y)', needAfterSeparate=True),
     Token('BEGIN', '(B|b)(E|e)(G|g)(I|i)(N|n)', needAfterSeparate=True),
     Token('ELSE', '(E|e)(L|l)(S|s)(E|e)', needAfterSeparate=True),
@@ -51,6 +51,7 @@ token_types = [
     Token('STRING', f'\'{SYMBOL}*\'', needAfterSeparate=True),
     Token('FLOAT', f'((ε|-){NUMBER}.{DIGIT}+({E_POSITIV}|{E_NEGATIV}|ε))|((ε|-){NUMBER}({E_NEGATIV}))', needAfterSeparate=True),
     Token('INTEGER', f'(ε|-){NUMBER}({E_POSITIV}|ε)', maxLen=16, needAfterSeparate=True),
+    Token('SPACE', f' |\n|\t|\r', isSeparate=True, needMiss=True),
 ]
 
 # TODO проверка на длину идентификаторы +++++

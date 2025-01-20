@@ -1,0 +1,58 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import csv\nimport argparse\n\nNEW_STATE_NAME = 'q'\nSTATE_OUTPUT_SEPARATOR = '/'\nCONVERT_TYPE_MEALY_TO_MOORE = 'mealy-to-moore'\nCONVERT_TYPE_MOORE_TO_MEALY = 'moore-to-mealy'\n\ndef printFormattedDict(data):\n    for row in data:\n        formattedRow = \" \".join(f\"{item:<7}\" for item in row)\n        print(formattedRow)\n    print()\n\n\ndef writeToCsv(fileName, data, delimiter=';'):\n    with open(fileName, 'w', newline='', encoding='ISO-8859-1') as file:\n        writer = csv.writer(file, delimiter=delimiter)\n        writer.writerows(data)\n\ndef readMealyFromCsv(fileName, delimiter=';'):\n    with open(fileName, 'r', encoding='ISO-8859-1') as file:\n        reader = csv.reader(file, delimiter=delimiter)\n        data = []\n\n        for row in reader:\n            data.append(row)\n\n        printFormattedDict(data)\n\n        mealyStates = []\n        for index, state in enumerate(data[0]):\n            if index == 0:\n                continue\n            mealyStates.append(state.strip())\n\n        mealyStateOutputs = {}\n        inputValueToTransitions = {}\n        for index, transitions in enumerate(data):\n            if index == 0:\n                continue\n\n            inputValue = transitions[0].strip()\n\n            for index2, transition in enumerate(transitions[1:]):\n                state = transition.strip().split(STATE_OUTPUT_SEPARATOR)[0]\n                output = transition.strip().split(STATE_OUTPUT_SEPARATOR)[1]\n\n                if state not in mealyStateOutputs:\n                    mealyStateOutputs[state] = set()\n                mealyStateOutputs[state].add(output)\n\n                if inputValue not in inputValueToTransitions:\n                    inputValueToTransitions[inputValue] = {}\n                    inputValueToTransitions[inputValue][mealyStates[index2]] = {}\n\n                inputValueToTransitions[inputValue][mealyStates[index2]] = state + STATE_OUTPUT_SEPARATOR + output\n\n        return mealyStates, mealyStateOutputs, inputValueToTransitions\n\n\ndef readMooreFromCsv(fileName, delimiter=';'):\n    with open(fileName, 'r', encoding='ISO-8859-1') as file:\n        reader = csv.reader(file, delimiter=delimiter)\n        data = []\n\n        for row in reader:\n            data.append(row)\n\n        printFormattedDict(data)\n\n        outputs = []\n        for index, output in enumerate(data[0]):\n            if index == 0:\n                continue\n\n            outputs.append(output.strip())\n\n        mooreStates = []\n        for index, mooreState in enumerate(data[1]):\n            if index == 0:\n                continue\n\n            mooreStates.append(mooreState.strip())\n\n        mooreStateOutputs = {}\n        for index, mooreState in enumerate(mooreStates):\n            output = outputs[index]\n            mooreStateOutputs[mooreState] = output\n\n        inputValueToTransitions = {}\n        for index, transitions in enumerate(data):\n            if index <= 1:\n                continue\n\n            inputValue = transitions[0].strip()\n\n            for index2, transition in enumerate(transitions[1:]):\n                state = transition.strip()\n                output = mooreStateOutputs[state]\n\n                if inputValue not in inputValueToTransitions:\n                    inputValueToTransitions[inputValue] = {}\n\n                mooreState = list(mooreStateOutputs.keys())[index2]\n                inputValueToTransitions[inputValue][mooreState] = state + STATE_OUTPUT_SEPARATOR + output\n\n        return mooreStateOutputs, inputValueToTransitions\n\n\ndef mealyToMoore(inputFileName, outputFileName):\n    mealyStates, mealyStateOutputs, inputValueToTransitions = readMealyFromCsv(inputFileName)\n    mealyToMooreStates = {}\n\n    mealyStateOutputs = dict(\n        sorted(mealyStateOutputs.items(),\n               key=lambda item: mealyStates.index(item[0]) if item[0] in mealyStates else float('inf')))\n    for mealyState, output in mealyStateOutputs.items():\n        mealyStateOutputs[mealyState] = sorted(output)\n\n    for mealyState in mealyStates:\n        if mealyState in mealyStateOutputs:\n            for output in mealyStateOutputs[mealyState]:\n                transition = mealyState + STATE_OUTPUT_SEPARATOR + output\n                mealyToMooreStates[transition] = NEW_STATE_NAME + str(len(mealyToMooreStates))\n        else:\n            mealyToMooreStates[mealyState] = NEW_STATE_NAME + str(len(mealyToMooreStates))\n\n    outputsRow = ['']\n    statesRow = ['']\n    for mealyState in mealyStates:\n        if mealyState in mealyStateOutputs:\n            for output in mealyStateOutputs[mealyState]:\n                outputsRow.append(output)\n                statesRow.append(mealyToMooreStates[mealyState + STATE_OUTPUT_SEPARATOR + output])\n        else:\n            outputsRow.append('')\n            statesRow.append(mealyToMooreStates[mealyState])\n\n    transitionsRows = []\n    for inputValue, transitions in inputValueToTransitions.items():\n        row = [inputValue]\n\n        for currentState in transitions:\n            nextState = inputValueToTransitions[inputValue][currentState]\n\n            countOutputs = len(mealyStateOutputs.get(currentState, [1]))\n            for i in range(countOutputs):\n                row.append(mealyToMooreStates[nextState])\n\n        transitionsRows.append(row)\n\n    data = [outputsRow, statesRow]\n    for transitionRow in transitionsRows:\n        data.append(transitionRow)\n\n    printFormattedDict(data)\n    writeToCsv(outputFileName, data)\n\n\ndef mooreToMealy(inputFileName, outputFileName):\n    mooreStateOutputs, inputValueToTransitions = readMooreFromCsv(inputFileName)\n\n    statesRow = ['']\n    for mooreState in mooreStateOutputs.keys():\n        statesRow.append(mooreState)\n\n    transitionsRows = []\n    for inputValue, transitions in inputValueToTransitions.items():\n        row = [inputValue]\n\n        for currentState in transitions:\n            nextState = inputValueToTransitions[inputValue][currentState]\n            row.append(nextState)\n\n        transitionsRows.append(row)\n\n    data = [statesRow]\n    for transitionRow in transitionsRows:\n        data.append(transitionRow)\n\n    printFormattedDict(data)\n    writeToCsv(outputFileName, data)\n\nif __name__ == '__main__':\n    parser = argparse.ArgumentParser(description='Process some CSV files.')\n    parser.add_argument('conertType', type=str, help='Input CSV file for Mealy')\n    parser.add_argument('inputFileName', type=str, help='Input CSV file')\n    parser.add_argument('outputFileName', type=str, help='Output CSV file')\n\n    args = parser.parse_args()\n\n    if args.conertType == CONVERT_TYPE_MEALY_TO_MOORE:\n        mealyToMoore(args.inputFileName, args.outputFileName)\n    elif args.conertType == CONVERT_TYPE_MOORE_TO_MEALY:\n        mooreToMealy(args.inputFileName, args.outputFileName)\n    else:\n        print('Not found')
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	
++++ b/main.py	
+@@ -108,8 +108,7 @@
+         return mooreStateOutputs, inputValueToTransitions
+ 
+ 
+-def mealyToMoore(inputFileName, outputFileName):
+-    mealyStates, mealyStateOutputs, inputValueToTransitions = readMealyFromCsv(inputFileName)
++def mealyToMoore(mealyStates, mealyStateOutputs, inputValueToTransitions):
+     mealyToMooreStates = {}
+ 
+     mealyStateOutputs = dict(
+@@ -154,13 +153,10 @@
+     for transitionRow in transitionsRows:
+         data.append(transitionRow)
+ 
+-    printFormattedDict(data)
+-    writeToCsv(outputFileName, data)
++    return data
+ 
+ 
+-def mooreToMealy(inputFileName, outputFileName):
+-    mooreStateOutputs, inputValueToTransitions = readMooreFromCsv(inputFileName)
+-
++def mooreToMealy(mooreStateOutputs, inputValueToTransitions):
+     statesRow = ['']
+     for mooreState in mooreStateOutputs.keys():
+         statesRow.append(mooreState)
+@@ -179,8 +175,7 @@
+     for transitionRow in transitionsRows:
+         data.append(transitionRow)
+ 
+-    printFormattedDict(data)
+-    writeToCsv(outputFileName, data)
++    return data
+ 
+ if __name__ == '__main__':
+     parser = argparse.ArgumentParser(description='Process some CSV files.')
+@@ -191,8 +186,8 @@
+     args = parser.parse_args()
+ 
+     if args.conertType == CONVERT_TYPE_MEALY_TO_MOORE:
+-        mealyToMoore(args.inputFileName, args.outputFileName)
++        writeToCsv(args.outputFileName, mealyToMoore(*readMealyFromCsv(args.inputFileName)))
+     elif args.conertType == CONVERT_TYPE_MOORE_TO_MEALY:
+-        mooreToMealy(args.inputFileName, args.outputFileName)
++        writeToCsv(args.outputFileName, mooreToMealy(*readMooreFromCsv(args.inputFileName)))
+     else:
+         print('Not found')
+\ No newline at end of file
