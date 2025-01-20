@@ -26,7 +26,6 @@ if __name__ == "__main__":
         while (token := lexer.nextToken()) is not None:
             if token.type == "SPACE":
                 continue
-            if token.value != "":
-                print(token)
+            print(token)
             if token.type == "BAD":
                 pass
